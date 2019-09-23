@@ -13,6 +13,7 @@ module ContentType
   MOVIE = 2
   AUDIO = 3
   HTML  = 4
+  FLEX_MESSAGE = 5
   PHONE = 6
   STICKER = 7
   PRESENT_STICKER = 9
@@ -20,7 +21,9 @@ module ContentType
   ATTACHMENT = 14
   NOTE = 16
   ADBANNER = 17
+  LINEPAY_TRANSFER = 20
   DOWNLOAD_IMAGE = 96
+  TEXT_WITHURI = 107
   LOCATION = 100
 end
 

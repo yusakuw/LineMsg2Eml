@@ -7,6 +7,7 @@ require './lib/CFPropertyList_extension.rb'
 require './lib/models.rb'
 require './lib/sticker.rb'
 require './lib/definitions.rb'
+require './lib/flex_message.rb'
 
 def get_file_info(domain, relative_path)
   return Filename.where('flags=1 and domain like ? and relativePath like ?', domain, relative_path)
@@ -89,7 +90,9 @@ end
 def compose_html_content(msg, mail)
   dic = get_unpacked_plist_dic(msg[:ZCONTENTMETADATA])
   html = Nokogiri::HTML.parse(dic['HTML_CONTENT'])
-  html.at_css('body')['style']=html.at_css('body')['style'].gsub(/opacity: ?0/, '')
+  if html.at_css('body')['style']
+    html.at_css('body')['style']=html.at_css('body')['style'].gsub(/opacity: ?0/, '')
+  end
   mail.text_part do
     body "#{msg[:ZTEXT]}\n#{html.at_css('body').inner_text}\n"
     content_type 'text/plain; charset=UTF-8'
@@ -97,6 +100,20 @@ def compose_html_content(msg, mail)
   mail.html_part = Mail::Part.new do
     content_type 'text/html; charset=UTF-8'
     body html.to_s
+  end
+  return mail
+end
+
+def compose_flex_message_content(msg, mail)
+  dic = get_unpacked_plist_dic(msg[:ZCONTENTMETADATA])
+  html = generate_flex_message(dic['FLEX_JSON'])
+  mail.text_part do
+    body "#{msg[:ZTEXT]}\n"
+    content_type 'text/plain; charset=UTF-8'
+  end
+  mail.html_part = Mail::Part.new do
+    content_type 'text/html; charset=UTF-8'
+    body html.to_html
   end
   return mail
 end
@@ -210,6 +227,17 @@ def compose_adbanner_content(msg, mail)
   return mail
 end
 
+def compose_linepay_transfer_content(msg, mail)
+  dic = get_unpacked_plist_dic(msg[:ZCONTENTMETADATA])
+  raise NotImplementedError if dic['TYPE'] != 'TRANSFER'
+  info_str = "#{dic['DISP_PRICE']}相当のLINE Pay残高またはボーナスを送りました。"
+  mail.text_part do
+    body info_str + "\n"
+    content_type 'text/plain; charset=UTF-8'
+  end
+  return mail
+end
+
 def compose_download_image_content(msg, mail)
   dic = get_unpacked_plist_dic(msg[:ZCONTENTMETADATA])
   begin
@@ -225,6 +253,16 @@ def compose_download_image_content(msg, mail)
   return mail
 end
 
+def compose_text_withuri_content(msg, mail)
+  mail.attachments['metadata.plist'] = msg[:ZCONTENTMETADATA]
+  mail.text_part do
+    body "#{msg[:ZTEXT]}\n"
+    content_type 'text/plain; charset=UTF-8'
+  end
+  return mail
+end
+
+
 def compose_content(msg, mail)
   case msg[:ZCONTENTTYPE]
   when ContentType::TEXT
@@ -237,6 +275,8 @@ def compose_content(msg, mail)
     mail = compose_audio_content(msg, mail)
   when ContentType::HTML
     mail = compose_html_content(msg, mail)
+  when ContentType::FLEX_MESSAGE
+    mail = compose_flex_message_content(msg, mail)
   when ContentType::PHONE
     mail = compose_phone_content(msg, mail)
   when ContentType::STICKER
@@ -251,13 +291,17 @@ def compose_content(msg, mail)
     mail = compose_note_content(msg, mail)
   when ContentType::ADBANNER
     mail = compose_adbanner_content(msg, mail)
+  when ContentType::LINEPAY_TRANSFER
+    mail = compose_linepay_transfer_content(msg, mail)
   when ContentType::DOWNLOAD_IMAGE
     mail = compose_download_image_content(msg, mail)
   when ContentType::LOCATION
     mail = compose_location_content(msg, mail)
+  when ContentType::TEXT_WITHURI
+    mail = compose_text_withuri_content(msg, mail)
   else
     p 'ContentType: ' + msg[:ZCONTENTTYPE].to_s
-    raise StandardError
+    raise NotImplementedError
   end
   return mail
 end

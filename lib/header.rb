@@ -45,7 +45,7 @@ def get_message_to(msg, me)
       members.push "\"#{status.sender}\" <#{status.address}@line.message>" if status
     end
   end
-  if msg[:ZMESSAGETYPE] != MessageType::SENT && msg[:ZSENDER].nil?
+  if msg[:ZMESSAGETYPE] != MessageType::SENT && !msg[:ZSENDER].nil?
     members.push "\"#{me.sender}\" <#{me.address}@line.message>"
   end
   return members
