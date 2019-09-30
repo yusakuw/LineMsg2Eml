@@ -25,6 +25,8 @@ module ContentType
   DOWNLOAD_IMAGE = 96
   TEXT_WITHURI = 107
   LOCATION = 100
+  IMAGE111 = 111
+  IMAGE112 = 112
 end
 
 # $backup_root_dir: String

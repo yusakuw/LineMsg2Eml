@@ -267,7 +267,7 @@ def compose_content(msg, mail)
   case msg[:ZCONTENTTYPE]
   when ContentType::TEXT
     mail = compose_text_content(msg, mail)
-  when ContentType::IMAGE
+  when ContentType::IMAGE, ContentType::IMAGE111, ContentType::IMAGE112
     mail = compose_image_content(msg, mail)
   when ContentType::MOVIE
     mail = compose_movie_content(msg, mail)

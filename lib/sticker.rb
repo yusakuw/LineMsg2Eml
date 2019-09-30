@@ -6,18 +6,18 @@ require 'open-uri'
 require './lib/models.rb'
 
 def get_sticker_data(sticker_id)
-  package_id = StickerPackage.find_by('ZSTICKERIDSTART <= ? and ZSTICKERIDEND >= ?', \
-                                      sticker_id, sticker_id)&.[]('ZPACKAGEID')
+  package = StickerPackage.find_by('ZSTICKERIDSTART <= ? and ZSTICKERIDEND >= ?', \
+                                      sticker_id, sticker_id)
+  return if package.nil?
+  package_id = package['ZPACKAGEID']
+  package_version = package['ZVERSION'] || 1
   return if package_id.nil?
 
-  info_uri = "https://dl.stickershop.line.naver.jp/products/0/0/1/#{package_id}" \
-    '/iphone/productInfo.meta'
-  sticker_uri = "http://dl.stickershop.line.naver.jp/products/0/0/1/#{package_id}" \
-    "/iphone/stickers/#{sticker_id}@2x.png"
-  animation_uri = "http://dl.stickershop.line.naver.jp/products/0/0/1/#{package_id}" \
-    "/iphone/animation/#{sticker_id}@2x.png"
-  sound_uri = "http://dl.stickershop.line.naver.jp/products/0/0/1/#{package_id}" \
-    "/iphone/sound/#{sticker_id}.m4a"
+  base_uri = "https://dl.stickershop.line.naver.jp/products/0/0/#{package_version}/#{package_id}"
+  info_uri = base_uri + '/iphone/productInfo.meta'
+  sticker_uri =  base_uri + "/iphone/stickers/#{sticker_id}@2x.png"
+  animation_uri = base_uri + "/iphone/animation/#{sticker_id}@2x.png"
+  sound_uri = base_uri + "/iphone/sound/#{sticker_id}.m4a"
 
   data = {}
   begin
