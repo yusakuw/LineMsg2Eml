@@ -3,16 +3,19 @@
 require './lib/definitions.rb'
 require './lib/models.rb'
 
+MSG_ADDRESS_SUFFIX = 'line.message'
+MSG_ID_SUFFIX = 'line.message.id'
+
 def get_message_id(msg)
   case msg[:ZMESSAGETYPE]
   when MessageType::RECEIVED
-    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@line.message_id>"
+    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@#{MSG_ID_SUFFIX}>"
   when MessageType::SENT
-    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@line.message_id>"
+    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@#{MSG_ID_SUFFIX}>"
   when MessageType::INFO
-    return "<info#{msg[:ZTIMESTAMP]}@line.message_id>"
+    return "<info#{msg[:ZTIMESTAMP]}@#{MSG_ID_SUFFIX}>"
   when nil
-    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@line.message_id>"
+    return "<#{msg[:ZID] || msg[:ZTIMESTAMP]}@#{MSG_ID_SUFFIX}>"
   else
     raise StandardError
   end
@@ -42,11 +45,11 @@ def get_message_to(msg, me)
   ChatMembers.where('Z_1CHATS=?', msg[:ZCHAT]).map do |mem|
     if mem[:Z_12MEMBERS] != msg[:ZSENDER]
       status = get_user_status(mem[:Z_12MEMBERS])
-      members.push "\"#{status.sender}\" <#{status.address}@line.message>" if status
+      members.push "\"#{status.sender}\" <#{status.address}@#{MSG_ADDRESS_SUFFIX}>" if status
     end
   end
   if msg[:ZMESSAGETYPE] != MessageType::SENT && !msg[:ZSENDER].nil?
-    members.push "\"#{me.sender}\" <#{me.address}@line.message>"
+    members.push "\"#{me.sender}\" <#{me.address}@#{MSG_ADDRESS_SUFFIX}>"
   end
   return members
 end
@@ -70,25 +73,25 @@ private
 def get_recv_message_from(msg, _me)
   status = get_user_status(msg[:ZSENDER])
   if status.nil?
-    return '<nil@line.message>'
+    return "<nil@#{MSG_ADDRESS_SUFFIX}>"
   else
-    return "\"#{status.sender}\" <#{status.address}@line.message>"
+    return "\"#{status.sender}\" <#{status.address}@#{MSG_ADDRESS_SUFFIX}>"
   end
 end
 
 def get_sent_message_from(_msg, me)
-  return "\"#{me.sender}\" <#{me.address}@line.message>"
+  return "\"#{me.sender}\" <#{me.address}@#{MSG_ADDRESS_SUFFIX}>"
 end
 
 def get_info_message_from(_msg, _me)
-  return '"Info" <info@line.message>'
+  return "\"Info\" <info@#{MSG_ADDRESS_SUFFIX}>"
 end
 
 def get_user_status(id)
   usr = User.find_by(Z_PK: id)
   return nil if usr.nil?
   status = UserStatus.new
-  status.sender = [usr[:ZCUSTOMNAME], usr[:ZNAME], usr[:ZADDRESSBOOKNAME]].select { |n| n }.join(', ')
+  status.sender = [usr[:ZCUSTOMNAME], usr[:ZNAME], usr[:ZADDRESSBOOKNAME]].select { |n| n && n != '' }.join(', ')
   status.address = usr[:ZMID]
   return status
 end
